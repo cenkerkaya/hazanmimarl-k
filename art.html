@@ -8,21 +8,15 @@
   <style>
     :root{--bg:#0f1115;--card:#171a21;--text:#e9eef6;--muted:#9aa4b2;--radius:16px}
     *{box-sizing:border-box}
-    body{
-      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:#0f1115; color:var(--text); min-height:100vh; display:grid; place-items:center; padding:24px;
-    }
-    .shell{
-      width:min(960px,100%); background:#171a21; border:1px solid #272c38; border-radius:var(--radius);
-      box-shadow:0 10px 40px rgba(0,0,0,.4); overflow:hidden;
-    }
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0f1115;color:var(--text);min-height:100vh;display:grid;place-items:center;padding:24px}
+    .shell{width:min(960px,100%);background:#171a21;border:1px solid #272c38;border-radius:var(--radius);box-shadow:0 10px 40px rgba(0,0,0,.4);overflow:hidden}
     header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;border-bottom:1px solid #232838}
-    .id{color:var(--muted);font-size:14px}
+    .id{color:#9aa4b2;font-size:14px}
     .media{display:grid;place-items:center;background:#0b0d12;aspect-ratio:16/9}
     .media img,.media video{max-width:100%;max-height:75vh;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
     .content{padding:22px;display:grid;gap:8px}
     h1{margin:0 0 4px 0;font-size:clamp(20px,2.2vw,28px)}
-    .meta{color:var(--muted);font-size:14px}
+    .meta{color:#9aa4b2;font-size:14px}
     .desc{line-height:1.7;color:#cbd5e1;margin-top:6px}
     .oops{padding:28px;text-align:center}
     .oops a{color:#7aa2f7;text-decoration:none}
@@ -51,19 +45,8 @@
   </div>
 
   <script>
-    /* ========= DATA: QR'ların gideceği içerikler =========
-       Yeni bir içerik eklemek için benzer bir nesne daha ekle.
-       Örn video için:
-       "isik-senaryosu": {
-         type: "video",
-         title: "Işık Senaryosu",
-         artist: "Hazan Mimarlık",
-         year: "2025",
-         src: "media/isik-senaryosu.mp4",
-         poster: "media/isik-senaryosu-poster.jpg",
-         autoplay: true, muted: true, loop: true, controls: true,
-         desc: "Gece modu atmosferi."
-       }
+    /* ========= DATA =========
+       Buraya yeni içerik ekledikçe QR'da id=... kısmını bu anahtarla eşleştir.
     */
     const DATA = {
       "organik-struktur": {
@@ -73,9 +56,19 @@
         year: "2025",
         src: "media/organik-struktur.jpg",
         desc: "Mavi ışık altında gerilmiş yüzeylerden oluşan organik mekânsal kurgu."
+      },
+      "isik-senaryosu": {
+        type: "video",
+        title: "Işık Senaryosu",
+        artist: "Hazan Mimarlık",
+        year: "2025",
+        src: "media/isik-senaryosu.mp4",
+        // poster: "media/isik-senaryosu-poster.jpg", // varsa aç
+        autoplay: true, muted: true, loop: true, controls: true,
+        desc: "Gece modu atmosferinin kısa kaydı."
       }
     };
-    /* ===================================================== */
+    /* ======================== */
 
     const qs = new URLSearchParams(location.search);
     const id = qs.get("id");
@@ -106,20 +99,34 @@
 
       if (item.type === "video") {
         const v = document.createElement("video");
-        if (item.controls !== false) v.controls = true;
-        if (item.autoplay) v.autoplay = true;
-        if (item.loop) v.loop = true;
-        if (item.muted) v.muted = true;        // mobil autoplay için önerilir
-        v.playsInline = true;                   // DOĞRU özellik adı
+        v.controls = item.controls !== false;
+        v.autoplay = !!item.autoplay;
+        v.loop = !!item.loop;
+        v.muted = !!item.muted;   // mobil autoplay için şart
+        v.playsInline = true;     // iOS için
         if (item.poster) v.poster = item.poster;
+        v.preload = "metadata";
+        v.src = item.src;         // doğrudan src
 
-        const s = document.createElement("source");
-        s.src = item.src; s.type = "video/mp4";
-        v.appendChild(s);
+        v.onerror = () => {
+          mediaArea.innerHTML = `
+            <div style="color:#cbd5e1;text-align:center;padding:16px">
+              Video yüklenemedi. Dosya yolu ve kodeği kontrol edin.<br>
+              <a href="${item.src}" target="_blank" style="color:#7aa2f7">Dosyayı doğrudan aç</a>
+            </div>`;
+        };
+
         mediaArea.replaceChildren(v);
       } else {
         const img = new Image();
-        img.src = item.src; img.alt = item.title || "Eser"; img.loading = "lazy";
+        img.src = item.src;
+        img.alt = item.title || "Eser";
+        img.loading = "lazy";
+        img.onerror = () => {
+          mediaArea.innerHTML = `<div style="color:#cbd5e1;text-align:center;padding:16px">
+            Görsel bulunamadı. Dosya adı ve yolu doğru mu?
+          </div>`;
+        };
         mediaArea.replaceChildren(img);
       }
 
